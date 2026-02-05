@@ -21,11 +21,27 @@ from urllib.parse import quote
 print(quote(sys.argv[1]))
 PY
 )"
-  curl -sS --fail \
+  tmp_response="$(mktemp)"
+  http_code="$(curl -sS \
+    --retry 5 \
+    --retry-all-errors \
+    --retry-delay 2 \
+    --connect-timeout 10 \
+    --max-time 300 \
     -X PUT \
     -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
     -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "x-upsert: true" \
     -H "Content-Type: application/zip" \
     --data-binary @"${file}" \
-    "${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${encoded_name}.zip?upsert=true"
+    -o "${tmp_response}" \
+    -w "%{http_code}" \
+    "${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${encoded_name}.zip")"
+  if [[ "${http_code}" != 2* ]]; then
+    echo "Upload failed for ${file} (HTTP ${http_code}). Response:" >&2
+    cat "${tmp_response}" >&2
+    rm -f "${tmp_response}"
+    exit 1
+  fi
+  rm -f "${tmp_response}"
 done
