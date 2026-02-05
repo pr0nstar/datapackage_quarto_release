@@ -26,6 +26,22 @@ inputs:
     description: Optional project name to display under the header
     required: false
     default: ""
+  upload:
+    description: Upload zips to Supabase Storage (true/false)
+    required: false
+    default: "false"
+  supabase_url:
+    description: Supabase project URL (required when upload=true)
+    required: false
+    default: ""
+  supabase_service_role_key:
+    description: Supabase service role key (required when upload=true)
+    required: false
+    default: ""
+  supabase_bucket:
+    description: Supabase Storage bucket name (required when upload=true)
+    required: false
+    default: "descargas"
 
 runs:
   using: composite
@@ -99,6 +115,16 @@ runs:
           printf "%s\n" "${files[@]}"
           echo "EOF"
         } >> "$GITHUB_ENV"
+
+    - name: Upload zips to Supabase (optional)
+      if: ${{ inputs.upload == 'true' }}
+      shell: bash
+      env:
+        SUPABASE_URL: ${{ inputs.supabase_url }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ inputs.supabase_service_role_key }}
+        SUPABASE_BUCKET: ${{ inputs.supabase_bucket }}
+      run: |
+        bash "${{ github.action_path }}/upload_to_supabase.sh"
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
