@@ -41,14 +41,14 @@ def field_row(f):
     name = f.get("name", "")
     ftype = f.get("type", "")
     desc = f.get("description", "") or ""
-    categories = f.get("categories")
+    categories = f.get("categories", f.get('_metadata'))
     desc = tex_escape(desc).replace("\n", r"\newline ")
     if categories:
         cat_text = format_categories(categories)
         if cat_text:
             cat_block = (
                 r"\vspace{0.05em}\footnotesize"
-                r"\begin{itemize}\setlength{\itemsep}{0.15em}\setlength{\parskip}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}"
+                r"\begin{itemize}\setlength{\itemsep}{0.15em}\setlength{\parskip}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}\setlength{\itemindent}{-5pt}"
                 + cat_text
                 + r"\end{itemize}\normalsize"
             )
@@ -72,6 +72,13 @@ def format_categories(categories) -> str:
         for c in categories:
             if isinstance(c, str):
                 parts.append(r"\item " + tex_escape(c))
+            elif isinstance(c, dict) and 'categories' in c:
+                label = c['value']
+                parts.append((
+                    f"\\item[] \\textbf{{{label}:}} " +
+                    format_categories(c.get('_subcategories', []))
+                ))
+
             elif isinstance(c, dict):
                 value = (
                     tex_escape(str(c.get("value", "")))
